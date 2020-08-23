@@ -7,9 +7,9 @@ that "does nothing" with respect to the append operation. It turns out that
 monoids are a very useful and general abstract data type.
 
 In Coq, we can add "proof obligations" to this datatype, that show that an
-instance of monoid behaves the right way. In particular, we want the empty to
-behave like unit, and append must be associative. *)
-Record Monoid {A : Type} := {
+instance of monoid behaves the right way. In particular, we want the empty
+value to behave like unit, and append must be associative. *)
+Record Monoid (A : Type) := {
 
   (* Empty element is an instance of A. *)
   empty : A;
@@ -24,21 +24,19 @@ Record Monoid {A : Type} := {
 }.
 
 (* Natural numbers form a monoid under addition, with 0 as empty element. *)
-Program Definition NatAddMonoid : Monoid := {|
-  empty := 0;
+Program Definition NatAddMonoid : Monoid nat := {|
+  empty  := 0;
   append := plus;
 |}.
 
 (* Coq can prove left_identity and right_identity automatically, but it fails
 on assoc so we need to help. *)
-Next Obligation.
-  apply Nat.add_assoc.
-Qed.
+Next Obligation. apply Nat.add_assoc. Qed.
 
 (* Natural numbers also form a monoid under multiplication, with 1 as the
 empty element. *)
-Program Definition NatMultMonoid : Monoid := {|
-  empty := 1;
+Program Definition NatMultMonoid : Monoid nat := {|
+  empty  := 1;
   append := mult;
 |}.
 Next Obligation. apply Nat.mul_1_r. Qed.
@@ -57,12 +55,13 @@ monoid, then I will prove that reduce will behave like reduce ought to."
 *)
 Section Reduce.
   Variable A : Type.
-  Variable m : @Monoid A.
+  Variable m : Monoid A.
+  (* It might help to think of m as *evidence* that A implements Monoid. *)
 
   Fixpoint reduce (xs : list A) : A :=
     match xs with
-    | [] => empty m
-    | x::xs' => append m x (reduce xs')
+    | [] => empty _ m
+    | x::xs' => append _ m x (reduce xs')
     end.
 
   Theorem reduce_one :
@@ -70,19 +69,19 @@ Section Reduce.
   Proof.
     intros x.
     simpl.
-    apply (right_identity m).
+    apply (right_identity _ m).
   Qed.
 
   Theorem reduce_app :
     forall l1 l2,
-      reduce (l1 ++ l2) = append m (reduce l1) (reduce l2).
+      reduce (l1 ++ l2) = append _ m (reduce l1) (reduce l2).
   Proof.
     intros l1 l2.
     induction l1; simpl.
     - symmetry.
-      apply (left_identity m).
+      apply (left_identity _ m).
     - rewrite IHl1.
-      apply (assoc m).
+      apply (assoc _ m).
   Qed.
 End Reduce.
 
@@ -103,24 +102,35 @@ Definition product : list nat -> nat := reduce _ NatMultMonoid.
 Compute (product [1;2;3;4;5]).
 
 
-(* Lists form a monoid under concatenation. This definition has to be parametric
-in the list element type. *)
-Section ListMonoidDef.
+(* Lists form a monoid under concatenation. This definition has to be
+parametric in the list element type. *)
+Program Definition ListMonoid (A : Type) : Monoid (list A) := {|
+  empty  := [];
+  append := @app A;
+|}.
 
-  (* Parametric type of list elements. *)
-  Variable A : Type.
-
-  Program Definition ListMonoid : Monoid := {|
-    empty := [];
-    append := @app A;
-  |}.
-
-  Next Obligation. apply app_nil_r. Qed.
-  Next Obligation. apply app_assoc. Qed.
-End ListMonoidDef.
+Next Obligation. apply app_nil_r. Qed.
+Next Obligation. apply app_assoc. Qed.
 
 (* Flatten takes a list of lists and combines them all into one list. *)
 Definition flatten {A : Type} : list (list A) -> list A :=
-  reduce _ (ListMonoid A).
+  reduce _ (ListMonoid _).
 
-Compute (flatten [[1;2;3]; [4;5]]).
+Compute (flatten [[1;2;3]; [4;5]; []; [6;7;8;9;10]]).
+
+
+(* Exercise: come up with a monoid instance for bool (as with nat, which we
+saw had instances for both add and mult, for bool there's more than one
+possible instance). What would be a good function name for reduce on your
+instance? *)
+
+(** FILL IN HERE
+Program Definition BoolMonoid : Monoid bool := {|
+  empty  := *a boolean value* ;
+  append := *a binary operation on bool* ;
+|}.
+
+Next Obligation. ****
+
+Definition **** : list bool -> bool := reduce _ BoolMonoid.
+*)
