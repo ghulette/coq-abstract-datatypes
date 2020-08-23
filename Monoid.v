@@ -9,15 +9,13 @@ monoids are a very useful and general abstract data type.
 In Coq, we can add "proof obligations" to this datatype, that show that an
 instance of monoid behaves the right way. In particular, we want the empty to
 behave like unit, and append must be associative. *)
-Record Monoid := {
-  (* The abstract monoid type. *)
-  t : Type;
+Record Monoid {A : Type} := {
 
-  (* Empty element is an instance of t. *)
-  empty : t;
+  (* Empty element is an instance of A. *)
+  empty : A;
 
-  (* The append operation. *)
-  append : t -> t -> t;
+  (* The append binary operation. *)
+  append : A -> A -> A;
 
   (* The proof obligations or specification. *)
   left_identity : forall m, append empty m = m;
@@ -27,7 +25,6 @@ Record Monoid := {
 
 (* Natural numbers form a monoid under addition, with 0 as empty element. *)
 Definition NatAddMonoid : Monoid := {|
-  t := nat;
   empty := 0;
   append := plus;
   left_identity := Nat.add_0_l;
@@ -38,7 +35,6 @@ Definition NatAddMonoid : Monoid := {|
 (* Natural numbers also form a monoid under multiplication, with 1 as the
 empty element. *)
 Definition NatMultMonoid : Monoid := {|
-  t := nat;
   empty := 1;
   append := mult;
   left_identity := Nat.mul_1_l;
@@ -58,12 +54,13 @@ that monoid. And if you can prove your monoid really does behave like a
 monoid, then I will prove that reduce will behave like reduce ought to."
 *)
 Section Reduce.
-  Variable m : Monoid.
+  Variable A : Type.
+  Variable m : @Monoid A.
 
-  Fixpoint reduce (xs : list m.(t)) : m.(t) :=
+  Fixpoint reduce (xs : list A) : A :=
     match xs with
-    | [] => m.(empty)
-    | x::xs' => m.(append) x (reduce xs')
+    | [] => empty m
+    | x::xs' => append m x (reduce xs')
     end.
 
   Theorem reduce_one :
@@ -71,36 +68,36 @@ Section Reduce.
   Proof.
     intros x.
     simpl.
-    apply m.(right_identity).
+    apply (right_identity m).
   Qed.
 
   Theorem reduce_app :
     forall l1 l2,
-      reduce (l1 ++ l2) = m.(append) (reduce l1) (reduce l2).
+      reduce (l1 ++ l2) = append m (reduce l1) (reduce l2).
   Proof.
     intros l1 l2.
     induction l1; simpl.
     - symmetry.
-      apply m.(left_identity).
+      apply (left_identity m).
     - rewrite IHl1.
-      apply m.(assoc).
+      apply (assoc m).
   Qed.
 End Reduce.
 
 (* Using the abstract idea of reduce, along with our concrete monoid instance
 of natural numbers under addition, it is very easy to define summation... *)
-Definition sum : list nat -> nat := reduce NatAddMonoid.
+Definition sum : list nat -> nat := reduce _ NatAddMonoid.
 Compute (sum [1;2;3;4;5]).
 
 (* ... and to prove useful, concrete things about how it behaves. *)
 Theorem sum_app :
   forall ns ms, sum (ns ++ ms) = sum ns + sum ms.
 Proof.
-  exact (reduce_app NatAddMonoid).
+  exact (reduce_app _ NatAddMonoid).
 Qed.
 
 (* Same idea but for product. *)
-Definition product : list nat -> nat := reduce NatMultMonoid.
+Definition product : list nat -> nat := reduce _ NatMultMonoid.
 Compute (product [1;2;3;4;5]).
 
 
@@ -112,7 +109,6 @@ Section ListMonoidDef.
   Variable A : Type.
 
   Definition ListMonoid : Monoid := {|
-    t := list A;
     empty := [];
     append := @app A;
     left_identity := @app_nil_l A;
@@ -123,6 +119,6 @@ End ListMonoidDef.
 
 (* Flatten takes a list of lists and combines them all into one list. *)
 Definition flatten {A : Type} : list (list A) -> list A :=
-  reduce (ListMonoid A).
+  reduce _ (ListMonoid A).
 
 Compute (flatten [[1;2;3]; [4;5]]).
