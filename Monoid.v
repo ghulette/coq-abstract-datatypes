@@ -17,30 +17,32 @@ Record Monoid {A : Type} := {
   (* The append binary operation. *)
   append : A -> A -> A;
 
-  (* The proof obligations or specification. *)
+  (* The proof obligations (i.e., a formal specification). *)
   left_identity : forall m, append empty m = m;
   right_identity : forall m, append m empty = m;
   assoc : forall m n o, append m (append n o) = append (append m n) o;
 }.
 
 (* Natural numbers form a monoid under addition, with 0 as empty element. *)
-Definition NatAddMonoid : Monoid := {|
+Program Definition NatAddMonoid : Monoid := {|
   empty := 0;
   append := plus;
-  left_identity := Nat.add_0_l;
-  right_identity := Nat.add_0_r;
-  assoc := Nat.add_assoc;
 |}.
+
+(* Coq can prove left_identity and right_identity automatically, but it fails
+on assoc so we need to help. *)
+Next Obligation.
+  apply Nat.add_assoc.
+Qed.
 
 (* Natural numbers also form a monoid under multiplication, with 1 as the
 empty element. *)
-Definition NatMultMonoid : Monoid := {|
+Program Definition NatMultMonoid : Monoid := {|
   empty := 1;
   append := mult;
-  left_identity := Nat.mul_1_l;
-  right_identity := Nat.mul_1_r;
-  assoc := Nat.mul_assoc;
 |}.
+Next Obligation. apply Nat.mul_1_r. Qed.
+Next Obligation. apply Nat.mul_assoc. Qed.
 
 (* Next we define a (very simple) algorithm on monoids. The key idea is that
 reduce will work for *any* monoid, without knowing anything beyond the
@@ -108,13 +110,13 @@ Section ListMonoidDef.
   (* Parametric type of list elements. *)
   Variable A : Type.
 
-  Definition ListMonoid : Monoid := {|
+  Program Definition ListMonoid : Monoid := {|
     empty := [];
     append := @app A;
-    left_identity := @app_nil_l A;
-    right_identity := @app_nil_r A;
-    assoc := @app_assoc A;
   |}.
+
+  Next Obligation. apply app_nil_r. Qed.
+  Next Obligation. apply app_assoc. Qed.
 End ListMonoidDef.
 
 (* Flatten takes a list of lists and combines them all into one list. *)
