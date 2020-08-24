@@ -29,8 +29,10 @@ Program Definition NatAddMonoid : Monoid nat := {|
   append := plus;
 |}.
 
-(* Coq can prove left_identity and right_identity automatically, but it fails
-on assoc so we need to help. *)
+(* Coq can prove left_identity (that is, forall n, 0 + n = n) and
+right_identity (forall n, n + 0 = n) automatically, but it fails on assoc so
+we need to help. To satisify this obligation we have to prove that
+forall m n o, m + (n + o) = (m + n) + o.*)
 Next Obligation. apply Nat.add_assoc. Qed.
 
 (* Natural numbers also form a monoid under multiplication, with 1 as the
@@ -46,8 +48,9 @@ Next Obligation. apply Nat.mul_assoc. Qed.
 reduce will work for *any* monoid, without knowing anything beyond the
 abstract Monoid specification.
 
-Furthermore, we can *prove* reduce will behave as per a specification without
-knowing anything about any particular monoid.
+Moreover, in Coq we can use our monoid facts (identity and assoc) to *prove*
+reduce will behave as per a specification without knowing anything else about
+any particular monoid.
 
 It's like saying, "give me a monoid, and I will give you a reduce operation on
 that monoid. And if you can prove your monoid really does behave like a
@@ -94,6 +97,7 @@ Compute (sum [1;2;3;4;5]).
 Theorem sum_app :
   forall ns ms, sum (ns ++ ms) = sum ns + sum ms.
 Proof.
+  (* This is just an instance of our reduce_app proof from above. *)
   exact (reduce_app _ NatAddMonoid).
 Qed.
 
@@ -101,9 +105,17 @@ Qed.
 Definition product : list nat -> nat := reduce _ NatMultMonoid.
 Compute (product [1;2;3;4;5]).
 
+Theorem product_app :
+  forall ns ms, product (ns ++ ms) = product ns * product ms.
+Proof.
+  exact (reduce_app _ NatMultMonoid).
+Qed.
 
-(* Lists form a monoid under concatenation. This definition has to be
-parametric in the list element type. *)
+
+(* One more example. Lists of elements drawn from some arbitrary type form a
+monoid under concatenation. This definition has to be parametric in the list
+element type. We are effectively defining a *family* of monoids here -- for
+every type A, the type list A is a monoid. *)
 Program Definition ListMonoid (A : Type) : Monoid (list A) := {|
   empty  := [];
   append := @app A;
