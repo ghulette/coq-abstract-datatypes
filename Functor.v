@@ -11,11 +11,11 @@ Record Functor (F : Type -> Type) := {
 }.
 
 Program Definition OptionFunctor : Functor option := {|
-    fmap A B f m :=
-      match m with
-      | Some x => Some (f x)
-      | None => None
-      end;
+  fmap A B f m :=
+    match m with
+    | Some x => Some (f x)
+    | None => None
+    end;
 |}.
 
 Next Obligation.
